@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import bencodepy
+import hashlib
 # import requests - available if you need it!
 
 
@@ -13,11 +14,7 @@ def bytes_to_str(data):
         return data.decode()
     raise TypeError(f"Type not serializable: {type(data)}")
 
-# Examples:
-#
-# - decode_bencode(b"5:hello") -> b"hello"
-# - decode_bencode(b"10:hello12345") -> b"hello12345"
-# - decode_bencode(b"i12345e") -> 12345
+
 def decode_bencode(bencoded_value):
     return bencodepy.Bencode(encoding="utf-8").decode(bencoded_value)
 
@@ -26,7 +23,9 @@ def decode_metainfo_file(filepath):
     metadata = bencodepy.Bencode().read(filepath)
     tracker_url = metadata.get(b"announce").decode("utf-8")
     length = metadata.get(b"info", {}).get(b"length")
-    return (tracker_url, length)
+    info = metadata.get(b"info", {})
+    info_hash = hashlib.sha1(bencodepy.encode(info)).hexdigest()
+    return (tracker_url, length, info_hash)
 
 def main():
     command = sys.argv[1]
@@ -41,8 +40,8 @@ def main():
             filepath = os.path.abspath(filepath)
         except:
             raise NotImplementedError("File not found")
-        tracker_url, length = decode_metainfo_file(filepath)
-        print("Tracker URL:", tracker_url, "\nLength:", length)
+        tracker_url, length, info_hash = decode_metainfo_file(filepath)
+        print("Tracker URL:", tracker_url, "\nLength:", length, "\nInfo Hash:", info_hash)
     else:
         raise NotImplementedError(f"Unknown command {command}")
 
