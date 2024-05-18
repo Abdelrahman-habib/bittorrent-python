@@ -23,7 +23,7 @@ def decode_bencode(bencoded_value):
 
 
 def decode_metainfo_file(filepath):
-    metadata = bencodepy.Bencode(encoding="utf-8").read(filepath)
+    metadata = bencodepy.Bencode().read(filepath)
     tracker_url = metadata.get(b"announce").decode("utf-8")
     length = metadata.get(b"info", {}).get(b"length")
     return (tracker_url, length)
