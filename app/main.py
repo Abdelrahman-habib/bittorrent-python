@@ -21,9 +21,6 @@ def decode_bencode(bencoded_value):
 def main():
     command = sys.argv[1]
 
-    # You can use print statements as follows for debugging, they'll be visible when running tests.
-    print("Logs from your program will appear here!")
-
     if command == "decode":
         bencoded_value = sys.argv[2].encode()
 
@@ -36,7 +33,6 @@ def main():
                 return data.decode()
 
             raise TypeError(f"Type not serializable: {type(data)}")
-
         print(json.dumps(decode_bencode(bencoded_value), default=bytes_to_str))
     else:
         raise NotImplementedError(f"Unknown command {command}")
