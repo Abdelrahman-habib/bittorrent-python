@@ -1,9 +1,29 @@
 import json
 import os
+import struct
 import sys
+from urllib.parse import urlencode
 import bencodepy
 import hashlib
-# import requests - available if you need it!
+import requests
+
+
+def get_peers(tracker_url, info_hash, left=0,peer_id = hashlib.sha256(os.urandom(16)).hexdigest()[:20], port=6881):
+    """Get peers from a tracker"""
+    params = {
+        "info_hash": info_hash,
+        "peer_id": peer_id,
+        "port": port,
+        "uploaded": 0,
+        "downloaded": 0,
+        "left": 0,
+        "compact": 1,
+    }
+    response = requests.get(tracker_url, params=urlencode(params))
+    if response.status_code != 200:
+        raise RuntimeError(f"Failed to get peers: {response.status_code}")
+    peers = decode_bencode(response.content).get("peers", [])
+    return peers
 
 
 # json.dumps() can't handle bytes, but bencoded "strings" need to be
@@ -20,6 +40,11 @@ def decode_bencode(bencoded_value):
 
 
 def decode_metainfo_file(filepath):
+    try:
+        os.path.exists(filepath)
+        filepath = os.path.abspath(filepath)
+    except:
+        raise NotImplementedError("File not found")
     metadata = bencodepy.Bencode().read(filepath)
     info = metadata.get(b"info", {})
     length = info.get(b"length")
@@ -28,7 +53,7 @@ def decode_metainfo_file(filepath):
     piece_length = info.get(b"piece length", 0)
     pieces = info.get(b"pieces")
     piece_hashes = [pieces[i : i + 20].hex() for i in range(0, len(pieces), 20)]
-    return (tracker_url, length, info_hash, piece_length, piece_hashes)
+    return (info, tracker_url, length, info_hash, piece_length, piece_hashes)
 
 def main():
     command = sys.argv[1]
@@ -38,15 +63,18 @@ def main():
         print(json.dumps(decode_bencode(bencoded_value), default=bytes_to_str))
     elif command == "info":
         filepath = sys.argv[2]
-        try:
-            os.path.exists(filepath)
-            filepath = os.path.abspath(filepath)
-        except:
-            raise NotImplementedError("File not found")
-        tracker_url, length, info_hash, piece_length, piece_hashes = decode_metainfo_file(filepath)
+        info,tracker_url, length, info_hash, piece_length, piece_hashes = decode_metainfo_file(filepath)
         print("Tracker URL:", tracker_url, "\nLength:", length, "\nInfo Hash:", info_hash, "\nPiece Length:", piece_length, "\nPiece Hashes:")
         for piece_hash in piece_hashes:
-            print(piece_hash)   
+            print(piece_hash)
+    elif command == "peers":
+        filepath = sys.argv[2]
+        info,tracker_url, length, info_hash, piece_length, piece_hashes = decode_metainfo_file(filepath)
+        peers = get_peers(tracker_url, info_hash = hashlib.sha1(bencodepy.encode(info)).digest(), left=length)
+        for i in range(0, len(peers), 6):
+            ip = ".".join(str(b) for b in peers[i : i + 4])
+            port = struct.unpack("!H", peers[i + 4 : i + 6])[0]
+            print(f"Peer: {ip}:{port}")
     else:
         raise NotImplementedError(f"Unknown command {command}")
 
