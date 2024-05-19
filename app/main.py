@@ -177,20 +177,20 @@ def main():
         print(json.dumps(decode_bencode(bencoded_value), default=bytes_to_str))
     elif command == "info":
         filepath = sys.argv[2]
-        info,tracker_url, length, info_hash, piece_length, piece_hashes = decode_metainfo_file(filepath)
+        info,tracker_url, length, info_hash, piece_length, piece_hashes,pieces = decode_metainfo_file(filepath)
         print("Tracker URL:", tracker_url, "\nLength:", length, "\nInfo Hash:", info_hash, "\nPiece Length:", piece_length, "\nPiece Hashes:")
         for piece_hash in piece_hashes:
             print(piece_hash)
     elif command == "peers":
         filepath = sys.argv[2]
-        info,tracker_url, length, info_hash, piece_length, piece_hashes = decode_metainfo_file(filepath)
+        info,tracker_url, length, info_hash, piece_length, piece_hashes,pieces = decode_metainfo_file(filepath)
         peers = get_peers(tracker_url, info_hash = hashlib.sha1(bencodepy.encode(info)).digest(), left=length)
         for peer in peers:
             print(peer)
     elif command == "handshake":
         filepath = sys.argv[2]
         (ip, port) = sys.argv[3].split(":")
-        info,tracker_url, length, info_hash, piece_length, piece_hashes = decode_metainfo_file(filepath)
+        info,tracker_url, length, info_hash, piece_length, piece_hashes, pieces = decode_metainfo_file(filepath)
         peer_id = establish_peer_connection(ip, port, info_hash = hashlib.sha1(bencodepy.encode(info)).digest(), peer_id = b"00112233445566778899")
         print(f"Peer ID: {peer_id}")
     elif command == "download_piece":
