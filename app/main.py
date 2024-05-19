@@ -40,7 +40,7 @@ def decode_metainfo_file(filepath):
     return info, tracker_url, length, info_hash, piece_length, piece_hashes, pieces
 
 
-def get_peers(tracker_url, info_hash, peer_id=b"-PC0001-000000000000", port=6881, uploaded=0, downloaded=0, left=0):
+def get_peers(tracker_url, info_hash, peer_id=b"00112233445566778899", port=6881, uploaded=0, downloaded=0, left=0):
     """
     Contact the tracker and get a list of peers.
     """
