@@ -91,8 +91,8 @@ def download_piece(torrent_file, piece_index, output_file):
         print("Connecting to peer", peer_ip, peer_port)
         s.connect((peer_ip, int(peer_port)))
         handshake = generate_handshake(hashlib.sha1(bencodepy.encode(info)).digest(), my_peer_id)
-        s.send(handshake)
-        response_handshake = s.recv(len(handshake))
+        s.sendall(handshake)
+        response_handshake = s.recv(68)
         length, msg_type = s.recv(4), s.recv(1)
         if msg_type != b"\x05": # "choke"
             raise Exception("bitfield message not found")
