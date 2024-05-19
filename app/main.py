@@ -55,6 +55,7 @@ def get_peers(tracker_url, info_hash, peer_id=b"00112233445566778899", port=6881
     })
     response = requests.get(url)
     response.raise_for_status()
+    print(response.content)
     peers = decode_bencode(response.content).get(b"peers")
     peers_list = [(socket.inet_ntoa(peers[i:i+4]), struct.unpack("!H", peers[i+4:i+6])[0])
                   for i in range(0, len(peers), 6)]
@@ -92,7 +93,7 @@ def download_piece(filepath, piece_index, output_file):
 
     for ip, port in peers:
         try:
-            peer_id = establish_peer_connection(ip, port, info_hash, b"-PC0001-000000000000")
+            peer_id = establish_peer_connection(ip, port, info_hash=hashlib.sha1(bencodepy.encode(info)).digest(), peer_id=b"-PC0001-000000000000")
             request = struct.pack("!IBIII", 0, 13, 6, piece_index, 0, piece_size)
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                 sock.settimeout(5)
