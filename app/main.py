@@ -107,15 +107,15 @@ def download_piece(torrent_file, piece_index, output_file):
     make sure it matches the hash in the torrent file.
     """
     info, tracker_url, file_length, info_hash, piece_length, piece_hashes, pieces = decode_metainfo_file(torrent_file)
-    my_peer_id = hashlib.sha256(os.urandom(16)).hexdigest()[:20].encode()
+    my_peer_id = b"00112233445566778899"
     peers = get_peers(tracker_url, info_hash = hashlib.sha1(bencodepy.encode(info)).digest(), left=file_length)
-    peer = peers[2]
+    peer = peers[1]
     peer_ip, peer_port = peer.split(":")
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         print("Connecting to peer", peer_ip, peer_port)
         s.connect((peer_ip, int(peer_port)))
         handshake = generate_handshake(hashlib.sha1(bencodepy.encode(info)).digest(), my_peer_id)
-        s.sendall(handshake)
+        s.send(handshake)
         response_handshake = s.recv(len(handshake))
         length, msg_type = s.recv(4), s.recv(1)
         if msg_type != b"\x05":  # "choke"
