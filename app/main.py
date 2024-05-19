@@ -64,11 +64,10 @@ def decode_metainfo_file(filepath):
 
 def generate_handshake(info_hash, peer_id = hashlib.sha256(os.urandom(16)).hexdigest()[:20].encode()):
     """Generate the handshake message"""
-    return (
-        b"\x13BitTorrent protocol\x00\x00\x00\x00\x00\x00\x00\x00"
-        + info_hash
-        + peer_id
-    )
+    handshake = b"\x13BitTorrent protocol\x00\x00\x00\x00\x00\x00\x00\x00"
+    handshake += info_hash
+    handshake += peer_id
+    return handshake
 
 def establish_peer_connection(ip, port, info_hash, peer_id = hashlib.sha256(os.urandom(16)).hexdigest()[:20].encode()):
     """Establish a handshake with a peer"""
