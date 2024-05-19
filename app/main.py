@@ -21,11 +21,14 @@ def decode_bencode(bencoded_value):
 
 def decode_metainfo_file(filepath):
     metadata = bencodepy.Bencode().read(filepath)
-    tracker_url = metadata.get(b"announce").decode("utf-8")
-    length = metadata.get(b"info", {}).get(b"length")
     info = metadata.get(b"info", {})
+    length = info.get(b"length")
     info_hash = hashlib.sha1(bencodepy.encode(info)).hexdigest()
-    return (tracker_url, length, info_hash)
+    tracker_url = metadata.get(b"announce").decode("utf-8")
+    piece_length = info.get(b"piece length", 0)
+    pieces = info.get(b"pieces")
+    piece_hashes = [pieces[i : i + 20].hex() for i in range(0, len(pieces), 20)]
+    return (tracker_url, length, info_hash, piece_length, piece_hashes)
 
 def main():
     command = sys.argv[1]
@@ -40,8 +43,10 @@ def main():
             filepath = os.path.abspath(filepath)
         except:
             raise NotImplementedError("File not found")
-        tracker_url, length, info_hash = decode_metainfo_file(filepath)
-        print("Tracker URL:", tracker_url, "\nLength:", length, "\nInfo Hash:", info_hash)
+        tracker_url, length, info_hash, piece_length, piece_hashes = decode_metainfo_file(filepath)
+        print("Tracker URL:", tracker_url, "\nLength:", length, "\nInfo Hash:", info_hash, "\nPiece Length:", piece_length, "\nPiece Hashes:")
+        for piece_hash in piece_hashes:
+            print(piece_hash)   
     else:
         raise NotImplementedError(f"Unknown command {command}")
 
