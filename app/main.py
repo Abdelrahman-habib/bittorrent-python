@@ -83,9 +83,9 @@ def establish_peer_connection(ip, port, info_hash, peer_id = hashlib.sha256(os.u
 
 def download_piece(torrent_file, piece_index, output_file):
     """Download a piece"""
-    info, tracker_url, length, info_hash, piece_length, piece_hashes, pieces = decode_metainfo_file(torrent_file)
+    info, tracker_url, file_length, info_hash, piece_length, piece_hashes, pieces = decode_metainfo_file(torrent_file)
     my_peer_id = hashlib.sha256(os.urandom(16)).hexdigest()[:20].encode()
-    peers = get_peers(tracker_url, info_hash = hashlib.sha1(bencodepy.encode(info)).digest(), left=length)
+    peers = get_peers(tracker_url, info_hash = hashlib.sha1(bencodepy.encode(info)).digest(), left=file_length)
     peer = peers[1]
     peer_ip, peer_port = peer.split(":")
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -104,7 +104,7 @@ def download_piece(torrent_file, piece_index, output_file):
             length, msg_type = s.recv(4), s.recv(1)
         chuck_size = 16 * 1024
         if piece_index == (len(pieces) // 20) - 1:
-            piece_length = length % piece_length
+            piece_length = file_length % piece_length
         piece = b""
         for i in range(math.ceil(piece_length / chuck_size)):
             msg_id = b"\x06"
