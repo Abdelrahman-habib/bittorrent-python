@@ -81,7 +81,31 @@ def establish_peer_connection(ip, port, info_hash, peer_id = hashlib.sha256(os.u
 
 
 def download_piece(torrent_file, piece_index, output_file):
-    """Download a piece"""
+    """
+    Download a piece of a torrent file from a peer.
+
+    This function takes a torrent file, a piece index, and an output file as arguments,
+    and will download the piece from a peer, and save it to the output file.
+
+    The function first decodes the torrent file to get the necessary information,
+    such as the info_hash, piece_length, and the peer list.
+
+    Then it connects to the first peer in the list, and sends a handshake message
+    to the peer, to establish a connection.
+
+    After that, it sends a "bitfield" message to the peer, to tell the peer which
+    pieces it has.
+
+    Then it sends a "request" message to the peer, to request the piece.
+    The request message includes the piece index, the begin of the piece, and the
+    length of the piece.
+
+    The peer will then send back the piece, and the function will save it to the
+    output file.
+
+    Before saving the piece, the function will also check the hash of the piece to
+    make sure it matches the hash in the torrent file.
+    """
     info, tracker_url, file_length, info_hash, piece_length, piece_hashes, pieces = decode_metainfo_file(torrent_file)
     my_peer_id = hashlib.sha256(os.urandom(16)).hexdigest()[:20].encode()
     peers = get_peers(tracker_url, info_hash = hashlib.sha1(bencodepy.encode(info)).digest(), left=file_length)
@@ -94,13 +118,14 @@ def download_piece(torrent_file, piece_index, output_file):
         s.sendall(handshake)
         response_handshake = s.recv(68)
         length, msg_type = s.recv(4), s.recv(1)
-        if msg_type != b"\x05": # "choke"
+        if msg_type != b"\x05":  # "choke"
             raise Exception("bitfield message not found")
         s.recv(int.from_bytes(length, byteorder="big") - 1)
-        s.sendall(b"\x00\x00\x00\x01\x02") # "unchoke"
-        length, msg_type = s.recv(4), s.recv(1) # "bitfield"
-        while msg_type != b"\x01": 
+        s.sendall(b"\x00\x00\x00\x01\x02")  # "unchoke"
+        length, msg_type = s.recv(4), s.recv(1)  # "bitfield"
+        while msg_type != b"\x01":
             length, msg_type = s.recv(4), s.recv(1)
+
         chuck_size = 16 * 1024
         if piece_index == (len(pieces) // 20) - 1:
             piece_length = file_length % piece_length
