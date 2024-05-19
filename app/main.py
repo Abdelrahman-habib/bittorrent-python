@@ -40,7 +40,7 @@ def decode_metainfo_file(filepath):
     return info, tracker_url, length, info_hash, piece_length, piece_hashes, pieces
 
 
-def get_peers(tracker_url, info_hash, peer_id=b"00112233445566778899", port=6881, uploaded=0, downloaded=0, left=0):
+def get_peers(tracker_url, info_hash, peer_id=b"-PC0001-000000000000", port=6881, uploaded=0, downloaded=0, left=0):
     """
     Contact the tracker and get a list of peers.
     """
@@ -55,7 +55,6 @@ def get_peers(tracker_url, info_hash, peer_id=b"00112233445566778899", port=6881
     })
     response = requests.get(url)
     response.raise_for_status()
-    print(response.content)
     peers = decode_bencode(response.content).get(b"peers")
     peers_list = [(socket.inet_ntoa(peers[i:i+4]), struct.unpack("!H", peers[i+4:i+6])[0])
                   for i in range(0, len(peers), 6)]
@@ -85,7 +84,7 @@ def download_piece(filepath, piece_index, output_file):
     Download a specific piece from a torrent.
     """
     info, tracker_url, file_length, info_hash, piece_length, piece_hashes, pieces = decode_metainfo_file(filepath)
-    peers = get_peers(tracker_url, info_hash=hashlib.sha1(bencodepy.encode(info)).digest(), left=file_length)
+    peers = get_peers(tracker_url, info_hash, left=file_length)
     piece_hash = bytes.fromhex(piece_hashes[piece_index])
     piece_offset = piece_index * piece_length
     piece_size = min(piece_length, file_length - piece_offset)
@@ -93,7 +92,7 @@ def download_piece(filepath, piece_index, output_file):
 
     for ip, port in peers:
         try:
-            peer_id = establish_peer_connection(ip, port, info_hash=hashlib.sha1(bencodepy.encode(info)).digest(), peer_id=b"-PC0001-000000000000")
+            peer_id = establish_peer_connection(ip, port, info_hash, b"-PC0001-000000000000")
             request = struct.pack("!IBIII", 0, 13, 6, piece_index, 0, piece_size)
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                 sock.settimeout(5)
@@ -115,7 +114,7 @@ def download_torrent(filepath, output_file_path):
     """
     info, tracker_url, file_length, info_hash, piece_length, piece_hashes, _ = decode_metainfo_file(filepath)
     downloaded_pieces = []
-    peers = get_peers(tracker_url, info_hash=hashlib.sha1(bencodepy.encode(info)).digest(), left=file_length)
+    peers = get_peers(tracker_url, info_hash, left=file_length)
 
     for piece_index, piece_hash in enumerate(piece_hashes):
         piece_offset = piece_index * piece_length
