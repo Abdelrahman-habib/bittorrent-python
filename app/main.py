@@ -107,7 +107,7 @@ def download_piece(torrent_file, piece_index, output_file):
     make sure it matches the hash in the torrent file.
     """
     info, tracker_url, file_length, info_hash, piece_length, piece_hashes, pieces = decode_metainfo_file(torrent_file)
-    my_peer_id = b"00112233445566778899"
+    my_peer_id = b"01112233445566778899"
     peers = get_peers(tracker_url, info_hash = hashlib.sha1(bencodepy.encode(info)).digest(), left=file_length)
     peer = peers[1]
     peer_ip, peer_port = peer.split(":")
