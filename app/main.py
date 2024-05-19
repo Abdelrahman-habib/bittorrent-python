@@ -89,49 +89,94 @@ def establish_peer_connection(ip, port, info_hash, peer_id=None):
 
 
 def download_piece(torrent_file, piece_index, output_file):
+    """
+    Download a piece of a torrent file from a peer.
+
+    This function takes a torrent file, a piece index, and an output file as arguments,
+    and will download the piece from a peer, and save it to the output file.
+
+    The function first decodes the torrent file to get the necessary information,
+    such as the info_hash, piece_length, and the peer list.
+
+    Then it connects to the first peer in the list, and sends a handshake message
+    to the peer, to establish a connection.
+
+    After that, it sends a "bitfield" message to the peer, to tell the peer which
+    pieces it has.
+
+    Then it sends a "request" message to the peer, to request the piece.
+    The request message includes the piece index, the begin of the piece, and the
+    length of the piece.
+
+    The peer will then send back the piece, and the function will save it to the
+    output file.
+
+    Before saving the piece, the function will also check the hash of the piece to
+    make sure it matches the hash in the torrent file.
+    """
     info, tracker_url, file_length, info_hash, piece_length, piece_hashes, pieces = decode_metainfo_file(torrent_file)
     my_peer_id = b"00112233445566778899"
-    peers = get_peers(tracker_url, info_hash=hashlib.sha1(bencodepy.encode(info)).digest(), left=file_length)
-
-    if not peers:
-        raise Exception("No peers found")
-
+    peers = get_peers(tracker_url, info_hash = hashlib.sha1(bencodepy.encode(info)).digest(), left=file_length)
     peer = peers[0]
     peer_ip, peer_port = peer.split(":")
-    piece_length = info.get(b"piece length", 0)
-    piece_data = b""
-
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        print(f"Connecting to peer {peer_ip}:{peer_port}")
+        print("Connecting to peer", peer_ip, peer_port)
         s.connect((peer_ip, int(peer_port)))
         handshake = generate_handshake(hashlib.sha1(bencodepy.encode(info)).digest(), my_peer_id)
         s.send(handshake)
         response_handshake = s.recv(len(handshake))
-        
-        if response_handshake[28:48] != hashlib.sha1(bencodepy.encode(info)).digest():
-            raise ValueError("Info hash mismatch in handshake response")
+        length, msg_type = s.recv(4), s.recv(1)
+        if msg_type != b"\x05":  # "choke"
+            raise Exception("bitfield message not found")
+        s.recv(int.from_bytes(length, byteorder="big") - 1)
+        s.sendall(b"\x00\x00\x00\x01\x02")  # "unchoke"
+        length, msg_type = s.recv(4), s.recv(1)  # "bitfield"
+        while msg_type != b"\x01":
+            length, msg_type = s.recv(4), s.recv(1)
 
         chuck_size = 16 * 1024
-        total_pieces = len(pieces) // 20
-        if piece_index == total_pieces - 1:
+        if piece_index == (len(pieces) // 20) - 1:
             piece_length = file_length % piece_length
-
+        piece = b""
         for i in range(math.ceil(piece_length / chuck_size)):
             msg_id = b"\x06"
             chunk_index = piece_index.to_bytes(4, byteorder="big")
             chunk_begin = (i * chuck_size).to_bytes(4, byteorder="big")
-            chunk_length = min(chuck_size, piece_length - i * chuck_size).to_bytes(4, byteorder="big")
-            request_message = struct.pack("!IBIII", 13, 6, piece_index, i * chuck_size, int.from_bytes(chunk_length, "big"))
+            if (
+                i == math.ceil(piece_length / chuck_size) - 1
+                and piece_length % chuck_size != 0
+            ):
+                chunk_length = (piece_length % chuck_size).to_bytes(4, byteorder="big")
+            else:
+                chunk_length = chuck_size.to_bytes(4, byteorder="big")
+            message_length = (
+                1 + len(chunk_index) + len(chunk_begin) + len(chunk_length)
+            ).to_bytes(4, byteorder="big")
+            request_message = (
+                message_length + msg_id + chunk_index + chunk_begin + chunk_length
+            )
             s.sendall(request_message)
-            piece_data += s.recv(int.from_bytes(chunk_length, "big"))
-
-    if hashlib.sha1(piece_data).digest() != pieces[piece_index * 20:(piece_index + 1) * 20]:
-        raise ValueError("Piece hash mismatch")
-
-    with open(output_file, "wb") as f:
-        f.write(piece_data)
-
-
+            print(
+                f"Requesting piece: {int.from_bytes(chunk_index, 'big')}, begin: {int.from_bytes(chunk_begin, 'big')}, length: {int.from_bytes(chunk_length, 'big')}"
+            )
+            msg = msg_id + chunk_index + chunk_begin + chunk_length
+            msg = len(msg).to_bytes(4, byteorder="big") + msg
+            length, msg_type = int.from_bytes(s.recv(4), byteorder="big"), s.recv(1)
+            resp_index = int.from_bytes(s.recv(4), byteorder="big")
+            resp_begin = int.from_bytes(s.recv(4), byteorder="big")
+            block = b""
+            to_get = int.from_bytes(chunk_length, byteorder="big")
+            while len(block) < to_get:
+                block += s.recv(to_get - len(block))
+            piece += block
+        og_hash = pieces[
+            piece_index * 20 : piece_index * 20 + 20
+        ]
+        assert hashlib.sha1(piece).digest() == og_hash
+        with open(output_file, "wb") as f:
+            f.write(piece) 
+            
+            
 def download_torrent(torrent_file, output_file):
     info, tracker_url, file_length, info_hash, piece_length, piece_hashes, pieces = decode_metainfo_file(torrent_file)
     peers = get_peers(tracker_url, info_hash=hashlib.sha1(bencodepy.encode(info)).digest(), left=file_length)
