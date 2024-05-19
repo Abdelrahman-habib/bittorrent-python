@@ -168,6 +168,25 @@ def download_piece(torrent_file, piece_index, output_file):
         with open(output_file, "wb") as f:
             f.write(piece)
 
+def download_torrent(torrent_file, output_file):
+    info, tracker_url, file_length, info_hash, piece_length, piece_hashes, pieces = decode_metainfo_file(torrent_file)
+    peers = get_peers(tracker_url, info_hash = hashlib.sha1(bencodepy.encode(info)).digest(), left=file_length)
+    if not peers:
+        raise Exception("No peers found")
+    peer_ip, peer_port = peers[0].split(":")
+    num_pieces = len(pieces) // 20
+    downloaded_pieces = []
+    for piece_index in range(num_pieces):
+        piece_hash = pieces[piece_index * 20 : (piece_index + 1) * 20]
+        download_piece(torrent_file, piece_index, f"piece_{piece_index}.tmp")
+        with open(f"piece_{piece_index}.tmp", "rb") as piece_file:
+            piece_data = piece_file.read()
+            if hashlib.sha1(piece_data).digest() != piece_hash:
+                raise Exception(f"Piece {piece_index} failed hash check")
+            downloaded_pieces.append(piece_data)
+    with open(output_file, "wb") as f:
+        for piece in downloaded_pieces:
+            f.write(piece)
 
 def main():
     command = sys.argv[1]
@@ -199,6 +218,11 @@ def main():
         piece_index = int(sys.argv[5])
         download_piece(filepath, piece_index, output_file)
         print(f"Piece {piece_index} downloaded to {output_file}.")
+    elif command == "download":
+        output_file = sys.argv[3]
+        torrent_file = sys.argv[4]
+        download_torrent(torrent_file, output_file)
+        print(f"Downloaded {torrent_file} to {output_file}.")
     else:
         raise NotImplementedError(f"Unknown command {command}")
 
