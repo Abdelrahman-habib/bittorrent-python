@@ -62,15 +62,15 @@ def decode_metainfo_file(filepath):
     return (info, tracker_url, length, info_hash, piece_length, piece_hashes)
 
 
-def generate_handshake(info_hash,peer_id = hashlib.sha256(os.urandom(16)).hexdigest()[:20].encode()):
+def generate_handshake(info_hash, peer_id = hashlib.sha256(os.urandom(16)).hexdigest()[:20].encode()):
     """Generate the handshake message"""
     return (
         b"\x13BitTorrent protocol\x00\x00\x00\x00\x00\x00\x00\x00"
         + info_hash
-        + b"\x00\x00\x00\x00\x00\x00\x00\x00"
+        + peer_id
     )
 
-def establish_peer_connection(ip, port, info_hash,peer_id = hashlib.sha256(os.urandom(16)).hexdigest()[:20].encode()):
+def establish_peer_connection(ip, port, info_hash, peer_id = hashlib.sha256(os.urandom(16)).hexdigest()[:20].encode()):
     """Establish a handshake with a peer"""
     handshake = generate_handshake(info_hash,peer_id)
     # make request to peer
@@ -167,7 +167,7 @@ def main():
         filepath = sys.argv[2]
         (ip, port) = sys.argv[3].split(":")
         info,tracker_url, length, info_hash, piece_length, piece_hashes = decode_metainfo_file(filepath)
-        peer_id = establish_peer_connection(ip, port, info_hash = hashlib.sha1(bencodepy.encode(info)).digest())
+        peer_id = establish_peer_connection(ip, port, info_hash = hashlib.sha1(bencodepy.encode(info)).digest(), peer_id = b"00112233445566778899")
         print(f"Peer ID: {peer_id}")
     elif command == "download_piece":
         output_file = sys.argv[3]
