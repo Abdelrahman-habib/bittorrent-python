@@ -76,7 +76,7 @@ def establish_peer_connection(ip, port, info_hash, peer_id = hashlib.sha256(os.u
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((ip, int(port)))
         s.send(handshake)
-        peer_id = s.recv(68)[48:].hex()
+        peer_id = s.recv(len(handshake))[48:].hex()
     return peer_id
 
 
