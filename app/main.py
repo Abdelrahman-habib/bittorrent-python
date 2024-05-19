@@ -6,6 +6,7 @@ from urllib.parse import urlencode
 import bencodepy
 import hashlib
 import requests
+import socket
 
 
 def get_peers(tracker_url, info_hash, left=0,peer_id = hashlib.sha256(os.urandom(16)).hexdigest()[:20], port=6881):
@@ -55,6 +56,20 @@ def decode_metainfo_file(filepath):
     piece_hashes = [pieces[i : i + 20].hex() for i in range(0, len(pieces), 20)]
     return (info, tracker_url, length, info_hash, piece_length, piece_hashes)
 
+def establish_peer_connection(ip, port, info_hash,peer_id = hashlib.sha256(os.urandom(16)).hexdigest()[:20].encode()):
+    """Establish a handshake with a peer"""
+    handshake = (
+        b"\x13BitTorrent protocol\x00\x00\x00\x00\x00\x00\x00\x00"
+        + info_hash
+        + peer_id
+    )
+    # make request to peer
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect((ip, int(port)))
+        s.send(handshake)
+        peer_id = s.recv(68)[48:].hex()
+    return peer_id
+
 def main():
     command = sys.argv[1]
 
@@ -75,6 +90,12 @@ def main():
             ip = ".".join(str(b) for b in peers[i : i + 4])
             port = struct.unpack("!H", peers[i + 4 : i + 6])[0]
             print(f"{ip}:{port}")
+    elif command == "handshake":
+        filepath = sys.argv[2]
+        (ip, port) = sys.argv[3].split(":")
+        info,tracker_url, length, info_hash, piece_length, piece_hashes = decode_metainfo_file(filepath)
+        peer_id = establish_peer_connection(ip, port, info_hash = hashlib.sha1(bencodepy.encode(info)).digest())
+        print(f"Peer ID: {peer_id}")
     else:
         raise NotImplementedError(f"Unknown command {command}")
 
