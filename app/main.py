@@ -96,7 +96,7 @@ def download_piece(torrent_file, piece_index, output_file):
         response_handshake = s.recv(len(handshake))
         length, msg_type = s.recv(4), s.recv(1)
         if msg_type != b"\x05": # "choke"
-            raise Exception("Expected bitfield message")
+            raise Exception("bitfield message not found")
         s.recv(int.from_bytes(length, byteorder="big") - 1)
         s.sendall(b"\x00\x00\x00\x01\x02") # "unchoke"
         length, msg_type = s.recv(4), s.recv(1) # "bitfield"
