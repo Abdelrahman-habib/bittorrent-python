@@ -16,13 +16,13 @@ def get_peers(tracker_url, info_hash, left=0,peer_id = hashlib.sha256(os.urandom
         "port": port,
         "uploaded": 0,
         "downloaded": 0,
-        "left": 0,
+        "left": left,
         "compact": 1,
     }
     response = requests.get(tracker_url, params=urlencode(params))
     if response.status_code != 200:
         raise RuntimeError(f"Failed to get peers: {response.status_code}")
-    peers = decode_bencode(response.content).get("peers", [])
+    peers = decode_bencode(response.content).get("peers", b"")
     return peers
 
 
@@ -36,7 +36,7 @@ def bytes_to_str(data):
 
 
 def decode_bencode(bencoded_value):
-    return bencodepy.Bencode(encoding="utf-8").decode(bencoded_value)
+    return bencodepy.Bencode(encoding="utf-8", encoding_fallback="all").decode(bencoded_value)
 
 
 def decode_metainfo_file(filepath):
@@ -74,7 +74,7 @@ def main():
         for i in range(0, len(peers), 6):
             ip = ".".join(str(b) for b in peers[i : i + 4])
             port = struct.unpack("!H", peers[i + 4 : i + 6])[0]
-            print(f"Peer: {ip}:{port}")
+            print(f"{ip}:{port}")
     else:
         raise NotImplementedError(f"Unknown command {command}")
 
