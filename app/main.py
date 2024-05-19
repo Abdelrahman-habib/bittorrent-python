@@ -84,7 +84,7 @@ def download_piece(filepath, piece_index, output_file):
     Download a specific piece from a torrent.
     """
     info, tracker_url, file_length, info_hash, piece_length, piece_hashes, pieces = decode_metainfo_file(filepath)
-    peers = get_peers(tracker_url, info_hash, left=file_length)
+    peers = get_peers(tracker_url, info_hash=hashlib.sha1(bencodepy.encode(info)).digest(), left=file_length)
     piece_hash = bytes.fromhex(piece_hashes[piece_index])
     piece_offset = piece_index * piece_length
     piece_size = min(piece_length, file_length - piece_offset)
@@ -114,7 +114,7 @@ def download_torrent(filepath, output_file_path):
     """
     info, tracker_url, file_length, info_hash, piece_length, piece_hashes, _ = decode_metainfo_file(filepath)
     downloaded_pieces = []
-    peers = get_peers(tracker_url, info_hash, left=file_length)
+    peers = get_peers(tracker_url, info_hash=hashlib.sha1(bencodepy.encode(info)).digest(), left=file_length)
 
     for piece_index, piece_hash in enumerate(piece_hashes):
         piece_offset = piece_index * piece_length
