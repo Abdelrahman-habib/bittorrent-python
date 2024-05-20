@@ -76,7 +76,7 @@ And an example of downloading the entire torrent file:
 python torrent_client.py download example.torrent output_file
 ```
 
-Notes
+### Notes
 Make sure to customize the `<path_to_torrent_file>`, `<peer_ip:peer_port>`, `<output_file>`, `<piece_index>`, etc., with appropriate values when using the commands.
 
 
