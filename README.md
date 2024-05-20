@@ -1,35 +1,85 @@
-[![progress-banner](https://backend.codecrafters.io/progress/bittorrent/1fd10318-05fe-4e89-85de-0777dd83ec8a)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
+# Torrent Client
 
-This is a starting point for Python solutions to the
-["Build Your Own BitTorrent" Challenge](https://app.codecrafters.io/courses/bittorrent/overview).
+This repository contains a Python-based torrent client that allows you to decode torrent files, retrieve information, find peers, perform handshakes with peers, download specific pieces, and download entire torrent files.
 
-In this challenge, you’ll build a BitTorrent client that's capable of parsing a
-.torrent file and downloading a file from a peer. Along the way, we’ll learn
-about how torrent files are structured, HTTP trackers, BitTorrent’s Peer
-Protocol, pipelining and more.
+## Features
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
+- **Decode Bencode**: Decode bencoded data.
+- **Retrieve Torrent Info**: Get tracker URL, file length, info hash, piece length, and piece hashes from a torrent file.
+- **Get Peers**: Retrieve a list of peers from the tracker.
+- **Establish Handshake**: Perform a handshake with a peer.
+- **Download Piece**: Download a specific piece of a torrent file.
+- **Download Torrent**: Download the entire torrent file from peers.
 
-# Passing the first stage
+## Requirements
 
-The entry point for your BitTorrent implementation is in `app/main.py`. Study
-and uncomment the relevant code, and push your changes to pass the first stage:
+- Python 3.x
+- Required packages: `requests`, `bencodepy`
 
-```sh
-git add .
-git commit -m "pass 1st stage" # any msg
-git push origin master
+Install the required packages using pip:
+
+```bash
+pip install requests bencodepy
+```
+## Usage
+The torrent client supports several commands. Below are examples of how to use each command.
+
+1. Decode Bencode
+Decode a bencoded value and print it as JSON.
+
+```bash
+python torrent_client.py decode <bencoded_value>
+```
+2. Retrieve Torrent Info
+Retrieve and display information from a .torrent file.
+
+```bash
+python torrent_client.py info <path_to_torrent_file>
+```
+3. Get Peers
+Retrieve and display a list of peers from the tracker.
+
+```bash
+python torrent_client.py peers <path_to_torrent_file>
 ```
 
-Time to move on to the next stage!
+4. Establish Handshake
+Perform a handshake with a peer and display the peer ID.
 
-# Stage 2 & beyond
+```bash
+python torrent_client.py handshake <path_to_torrent_file> <peer_ip:peer_port>
+```
 
-Note: This section is for stages 2 and beyond.
+5. Download Piece
+Download a specific piece of a torrent file and save it to an output file.
 
-1. Ensure you have `python (3.11)` installed locally
-1. Run `./your_bittorrent.sh` to run your program, which is implemented in
-   `app/main.py`.
-1. Commit your changes and run `git push origin master` to submit your solution
-   to CodeCrafters. Test output will be streamed to your terminal.
+```bash
+python torrent_client.py download_piece <path_to_torrent_file> <output_file> <piece_index>
+```
+
+6. Download Torrent
+Download the entire torrent file and save it to an output file.
+
+```bash
+python torrent_client.py download <path_to_torrent_file> <output_file>
+```
+
+## Example
+Here's an example of downloading a specific piece of a torrent file:
+
+```bash
+python torrent_client.py download_piece example.torrent piece_0.tmp 0
+```
+And an example of downloading the entire torrent file:
+
+```bash
+python torrent_client.py download example.torrent output_file
+```
+
+Notes
+Make sure to customize the `<path_to_torrent_file>`, `<peer_ip:peer_port>`, `<output_file>`, `<piece_index>`, etc., with appropriate values when using the commands.
+
+
+
+
+
